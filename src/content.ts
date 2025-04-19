@@ -1,9 +1,33 @@
 import van, { State } from 'vanjs-core'
-import { playEmptyClick, playRandomGunshot, playRandomReload } from './audio'
+import { Gun, guns } from './gun'
 
 console.log('Content script loaded')
 
 const { div } = van.tags
+
+// Select the Remington 1858 for this session
+const sessionGun: Gun = guns.remington1858
+
+const GunInfo = () => {
+  return div(
+    {
+      style: `
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Old Standard TT', serif;
+        max-width: 300px;
+        z-index: 10000;
+      `,
+    },
+    div({ style: 'font-size: 1.2em; margin-bottom: 5px; color: #d4af37;' }, sessionGun.name),
+    div({ style: 'font-size: 0.9em; line-height: 1.4;' }, sessionGun.description)
+  )
+}
 
 interface GunShot {
   x: number
@@ -81,25 +105,22 @@ const Overlay = () => {
 
   // State for gunshot markers and ammo
   const gunshots = van.state<GunShot[]>([])
-  const remainingShots = van.state(6)
+  const remainingShots = van.state(sessionGun.capacity)
 
   const handleMouseEvent = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // console.log('Mouse event:', {
-    //   type: e.type,
-    //   x: e.clientX,
-    //   y: e.clientY,
-    //   button: e.button,
-    // })
 
     if (e.type === 'mousedown') {
       if (remainingShots.val > 0) {
         gunshots.val = [...gunshots.val, { x: e.clientX, y: e.clientY }]
         remainingShots.val -= 1
-        playRandomGunshot()
+        // Use the session gun's shot sound
+        const shotSound = new Audio(sessionGun.shot)
+        shotSound.play()
       } else {
-        playEmptyClick()
+        const emptySound = new Audio(sessionGun.emptyClick)
+        emptySound.play()
       }
     }
   }
@@ -114,9 +135,10 @@ const Overlay = () => {
     })
 
     // Press 'R' to reload
-    if (e.code === 'KeyR' && remainingShots.val < 6) {
-      remainingShots.val = 6
-      playRandomReload()
+    if (e.code === 'KeyR' && remainingShots.val < sessionGun.capacity) {
+      remainingShots.val = sessionGun.capacity
+      const reloadSound = new Audio(sessionGun.reload)
+      reloadSound.play()
     }
   }
 
@@ -136,13 +158,14 @@ const Overlay = () => {
       onkeydown: handleKeyEvent,
       onkeyup: handleKeyEvent,
       onkeypress: handleKeyEvent,
-      tabindex: 0, // Makes the div focusable for keyboard events
+      tabindex: 0,
     },
+    GunInfo(),
     RevolverCylinder(remainingShots),
     div(
       { class: 'game' },
       div({ class: 'game-title' }, 'High Noon'),
-      div({ class: 'game-content' }, () => `Shots remaining: ${remainingShots.val}`),
+      div({ class: 'game-content' }, () => `${sessionGun.name} - Shots remaining: ${remainingShots.val}`),
       Gunshots()
     )
   )
