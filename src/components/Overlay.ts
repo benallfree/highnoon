@@ -2,6 +2,7 @@ import van from 'vanjs-core'
 import { Gun } from '../gun'
 import { DebugPanel } from './DebugPanel'
 import { Gunshot, GunShot } from './Gunshot'
+import { ReloadButton } from './ReloadButton'
 import { RevolverCylinder } from './RevolverCylinder'
 
 const { div } = van.tags
@@ -16,6 +17,14 @@ export const Overlay = (sessionGun: Gun) => {
   const cylinderRotation = van.state(0)
   const mousePosition = van.state({ x: 0, y: 0 })
   const isDebugVisible = van.state(false)
+
+  const reloadWeapon = () => {
+    if (remainingShots.val < sessionGun.capacity) {
+      remainingShots.val = sessionGun.capacity
+      const reloadSound = new Audio(sessionGun.reload)
+      reloadSound.play()
+    }
+  }
 
   const fireWeapon = (x: number, y: number) => {
     cylinderRotation.val += 1
@@ -47,9 +56,7 @@ export const Overlay = (sessionGun: Gun) => {
     // Press 'R' to reload
     if (e.code === 'KeyR' && remainingShots.val < sessionGun.capacity) {
       e.preventDefault()
-      remainingShots.val = sessionGun.capacity
-      const reloadSound = new Audio(sessionGun.reload)
-      reloadSound.play()
+      reloadWeapon()
     }
     // Press Space to fire
     else if (e.code === 'Space' && e.type === 'keydown') {
@@ -85,6 +92,7 @@ export const Overlay = (sessionGun: Gun) => {
     },
     DebugPanel(isDebugVisible, sessionGun, remainingShots, mousePosition),
     RevolverCylinder(remainingShots, cylinderRotation),
+    ReloadButton(remainingShots, sessionGun, reloadWeapon),
     div({ class: 'game' }, Gunshots())
   )
 }
