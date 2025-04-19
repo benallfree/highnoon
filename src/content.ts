@@ -48,8 +48,8 @@ const Gunshot = ({ x, y }: GunShot) => {
   })
 }
 
-const RevolverCylinder = (remainingShots: State<number>) => {
-  const rotationDegrees = van.derive(() => (6 - remainingShots.val) * 60)
+const RevolverCylinder = (remainingShots: State<number>, rotation: State<number>) => {
+  const rotationDegrees = van.derive(() => rotation.val * 60)
   console.log('rotationDegrees', rotationDegrees.val)
   return div(
     {
@@ -73,7 +73,6 @@ const RevolverCylinder = (remainingShots: State<number>) => {
     ...Array(6)
       .fill(0)
       .map((_, i) => {
-        console.log('***i', i)
         const angle = i * 60
         const radius = 35 // Increased radius to move bullets more toward the outside
         // Calculate position relative to center
@@ -106,12 +105,14 @@ const Overlay = () => {
   // State for gunshot markers and ammo
   const gunshots = van.state<GunShot[]>([])
   const remainingShots = van.state(sessionGun.capacity)
+  const cylinderRotation = van.state(0)
 
   const handleMouseEvent = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
     if (e.type === 'mousedown') {
+      cylinderRotation.val += 1
       if (remainingShots.val > 0) {
         gunshots.val = [...gunshots.val, { x: e.clientX, y: e.clientY }]
         remainingShots.val -= 1
@@ -161,7 +162,7 @@ const Overlay = () => {
       tabindex: 0,
     },
     GunInfo(),
-    RevolverCylinder(remainingShots),
+    RevolverCylinder(remainingShots, cylinderRotation),
     div(
       { class: 'game' },
       div({ class: 'game-title' }, 'High Noon'),
