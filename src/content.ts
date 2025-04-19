@@ -75,7 +75,7 @@ const RevolverCylinder = (remainingShots: State<number>) => {
       .map((_, i) => {
         console.log('***i', i)
         const angle = i * 60
-        const radius = 25 // Reduced radius to keep bullets more centered
+        const radius = 35 // Increased radius to move bullets more toward the outside
         // Calculate position relative to center
         const x = 50 + radius * Math.cos(((angle - 90) * Math.PI) / 180)
         const y = 50 + radius * Math.sin(((angle - 90) * Math.PI) / 180)
