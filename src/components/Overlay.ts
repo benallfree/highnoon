@@ -1,6 +1,6 @@
 import van from 'vanjs-core'
 import { Gun } from '../gun'
-import { GunInfo } from './GunInfo'
+import { DebugPanel } from './DebugPanel'
 import { Gunshot, GunShot } from './Gunshot'
 import { RevolverCylinder } from './RevolverCylinder'
 
@@ -15,6 +15,7 @@ export const Overlay = (sessionGun: Gun) => {
   const remainingShots = van.state(sessionGun.capacity)
   const cylinderRotation = van.state(0)
   const mousePosition = van.state({ x: 0, y: 0 })
+  const isDebugVisible = van.state(false)
 
   const fireWeapon = (x: number, y: number) => {
     cylinderRotation.val += 1
@@ -43,8 +44,6 @@ export const Overlay = (sessionGun: Gun) => {
   }
 
   const handleGlobalKeyEvent = (e: KeyboardEvent) => {
-    console.log('***handleKeyEvent', e.code)
-
     // Press 'R' to reload
     if (e.code === 'KeyR' && remainingShots.val < sessionGun.capacity) {
       e.preventDefault()
@@ -70,7 +69,6 @@ export const Overlay = (sessionGun: Gun) => {
 
   const Gunshots = () => {
     return () => {
-      console.log('***gunshots', gunshots.val)
       return div({ class: 'gunshots-container' }, ...gunshots.val.map((shot) => Gunshot(shot)))
     }
   }
@@ -85,13 +83,8 @@ export const Overlay = (sessionGun: Gun) => {
       onmousemove: handleMouseEvent,
       tabindex: 0,
     },
-    GunInfo(sessionGun),
+    DebugPanel(isDebugVisible, sessionGun, remainingShots, mousePosition),
     RevolverCylinder(remainingShots, cylinderRotation),
-    div(
-      { class: 'game' },
-      div({ class: 'game-title' }, 'High Noon'),
-      div({ class: 'game-content' }, () => `${sessionGun.name} - Shots remaining: ${remainingShots.val}`),
-      Gunshots()
-    )
+    div({ class: 'game' }, Gunshots())
   )
 }
