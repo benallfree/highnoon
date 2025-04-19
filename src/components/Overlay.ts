@@ -7,12 +7,17 @@ import { RevolverCylinder } from './RevolverCylinder'
 
 const { div } = van.tags
 
+export interface BulletHole extends GunShot {
+  rotation: number
+  size: number
+}
+
 export const Overlay = (sessionGun: Gun) => {
   const overlayStyle =
     'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; cursor: crosshair;'
 
   // State for gunshot markers and ammo
-  const gunshots = van.state<GunShot[]>([])
+  const gunshots = van.state<BulletHole[]>([])
   const remainingShots = van.state(sessionGun.capacity)
   const cylinderRotation = van.state(0)
   const mousePosition = van.state({ x: 0, y: 0 })
@@ -29,9 +34,14 @@ export const Overlay = (sessionGun: Gun) => {
   const fireWeapon = (x: number, y: number) => {
     cylinderRotation.val += 1
     if (remainingShots.val > 0) {
-      gunshots.val = [...gunshots.val, { x, y }]
+      const newBulletHole: BulletHole = {
+        x,
+        y,
+        rotation: Math.random() * 360,
+        size: 11 + Math.random() * 2,
+      }
+      gunshots.val = [...gunshots.val, newBulletHole]
       remainingShots.val -= 1
-      // Use the session gun's shot sound
       const shotSound = new Audio(sessionGun.shot)
       shotSound.play()
     } else {
@@ -44,7 +54,6 @@ export const Overlay = (sessionGun: Gun) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Update mouse position on any mouse event
     mousePosition.val = { x: e.clientX, y: e.clientY }
 
     if (e.type === 'mousedown') {
@@ -53,20 +62,15 @@ export const Overlay = (sessionGun: Gun) => {
   }
 
   const handleGlobalKeyEvent = (e: KeyboardEvent) => {
-    // Press 'R' to reload
     if (e.code === 'KeyR' && remainingShots.val < sessionGun.capacity) {
       e.preventDefault()
       reloadWeapon()
-    }
-    // Press Space to fire
-    else if (e.code === 'Space' && e.type === 'keydown') {
+    } else if (e.code === 'Space' && e.type === 'keydown') {
       e.preventDefault()
-      // Fire at the current mouse position
       fireWeapon(mousePosition.val.x, mousePosition.val.y)
     }
   }
 
-  // Set up global key handler
   van.derive(() => {
     window.addEventListener('keydown', handleGlobalKeyEvent)
     return () => {
