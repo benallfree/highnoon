@@ -5,6 +5,7 @@
       "name": "xes",
       "devDependencies": {
         "@parcel/config-webextension": "^2.14.4",
+        "@parcel/transformer-raw": "^2.14.4",
         "@vanilla-extract/parcel-transformer": "^1.0.14",
         "parcel": "^2.14.4",
         "prettier": "^3.5.3",
