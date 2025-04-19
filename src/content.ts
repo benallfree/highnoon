@@ -1,4 +1,4 @@
-import van from 'vanjs-core'
+import van, { State } from 'vanjs-core'
 import { playEmptyClick, playRandomGunshot, playRandomReload } from './audio'
 
 console.log('Content script loaded')
@@ -24,9 +24,60 @@ const Gunshot = ({ x, y }: GunShot) => {
   })
 }
 
+const RevolverCylinder = (remainingShots: State<number>) => {
+  const rotationDegrees = van.derive(() => (6 - remainingShots.val) * 60)
+  console.log('rotationDegrees', rotationDegrees.val)
+  return div(
+    {
+      class: 'revolver-cylinder',
+      style: () => `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 100px;
+        height: 100px;
+        background:rgb(132, 117, 117);
+        border-radius: 50%;
+        border: 8px solid #1a1a1a;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 5px 15px rgba(0,0,0,0.3);
+        transform: rotate(${rotationDegrees.val}deg);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      `,
+    },
+    // Create 6 bullet chambers
+    ...Array(6)
+      .fill(0)
+      .map((_, i) => {
+        console.log('***i', i)
+        const angle = i * 60
+        const radius = 30
+        const centerX = 50
+        const centerY = 50
+        const x = centerX + radius * Math.cos(((angle - 90) * Math.PI) / 180)
+        const y = centerY + radius * Math.sin(((angle - 90) * Math.PI) / 180)
+
+        return div({
+          style: () => `
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          background: ${i < remainingShots.val ? '#d4af37' : '#1a1a1a'};
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          left: ${x}px;
+          top: ${y}px;
+          transition: background-color 0.3s ease;
+          box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+          border: 2px solid ${i < remainingShots.val ? '#ffd700' : '#333'};
+        `,
+        })
+      })
+  )
+}
+
 const Overlay = () => {
   const overlayStyle =
-    'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; cursor: pointer;'
+    'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; cursor: crosshair;'
 
   // State for gunshot markers and ammo
   const gunshots = van.state<GunShot[]>([])
@@ -35,12 +86,12 @@ const Overlay = () => {
   const handleMouseEvent = (e: MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    console.log('Mouse event:', {
-      type: e.type,
-      x: e.clientX,
-      y: e.clientY,
-      button: e.button,
-    })
+    // console.log('Mouse event:', {
+    //   type: e.type,
+    //   x: e.clientX,
+    //   y: e.clientY,
+    //   button: e.button,
+    // })
 
     if (e.type === 'mousedown') {
       if (remainingShots.val > 0) {
@@ -69,6 +120,11 @@ const Overlay = () => {
     }
   }
 
+  const Gunshots = () => {
+    console.log('Gunshots:', gunshots.val.length)
+    return gunshots.val.map((shot) => Gunshot(shot))
+  }
+
   return div(
     {
       class: 'game-overlay',
@@ -82,11 +138,12 @@ const Overlay = () => {
       onkeypress: handleKeyEvent,
       tabindex: 0, // Makes the div focusable for keyboard events
     },
+    RevolverCylinder(remainingShots),
     div(
       { class: 'game' },
       div({ class: 'game-title' }, 'High Noon'),
-      div({ class: 'game-content' }, `Shots remaining: ${remainingShots}`),
-      ...gunshots.val.map((shot) => Gunshot(shot))
+      div({ class: 'game-content' }, () => `Shots remaining: ${remainingShots.val}`),
+      Gunshots()
     )
   )
 }
