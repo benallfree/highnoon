@@ -1,6 +1,9 @@
+import van from 'vanjs-core'
 import { playRandomDraw } from './audio'
 import { createWesternScene } from './components/WesternScene'
 import { guns } from './gun'
+
+const { div } = van.tags
 
 console.log('Content script loaded')
 
@@ -40,15 +43,18 @@ const checkAndStartGame = () => {
     console.log('Scene opened')
     playRandomDraw() // Play the draw sound when scene appears
 
-    // Create a container for the game
-    const gameContainer = document.createElement('div')
-    gameContainer.style.width = '100%'
-    gameContainer.style.height = '400px'
-    gameContainer.style.marginTop = '10px'
-    gameContainer.style.marginBottom = '10px'
-    gameContainer.style.backgroundColor = '#d3b98d'
-    gameContainer.style.borderRadius = '16px'
-    gameContainer.style.overflow = 'hidden'
+    // Create a container for the game using VanJS
+    const gameContainer = div({
+      style: `
+        width: 100%;
+        height: 400px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        background-color: #d3b98d;
+        border-radius: 16px;
+        overflow: hidden;
+      `,
+    })
 
     // Insert the container after the article
     testPost.parentNode?.insertBefore(gameContainer, testPost.nextSibling)
