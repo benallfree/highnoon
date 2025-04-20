@@ -15,8 +15,8 @@ const sessionGun = guns.remington1858
 
 let westernScene: ReturnType<typeof createWesternScene> | null = null
 
-// Check if we're in the High Noon community
-const findTestPost = () => {
+// Check if we're in a compatible community
+const findCommunityPost = () => {
   // Only proceed if we're on a specific post URL
   if (!window.location.pathname.match(/\/[^\/]+\/status\/\d+$/)) return null
 
@@ -37,7 +37,7 @@ const findTestPost = () => {
 
 // Function to check and potentially start the game
 const checkAndStartGame = () => {
-  const testPost = findTestPost()
+  const testPost = findCommunityPost()
 
   // If we're not in the community anymore but the scene is active, destroy it
   if (!testPost) {
