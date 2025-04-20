@@ -5,6 +5,7 @@ import { AudioManager } from './AudioManager'
 import { BuildingFactory } from './BuildingFactory'
 import { DebugPanel } from './DebugPanel'
 import { DustParticles } from './DustParticles'
+import { PlayerController } from './PlayerController'
 import { ReloadButton } from './ReloadButton'
 import { RevolverCylinder } from './RevolverCylinder'
 
@@ -90,11 +91,9 @@ export class WesternScene {
   private playerPosition: THREE.Vector3
   private enemyCowboy!: THREE.Group
   private dustParticles: DustParticles
-  private targetRotation = new THREE.Vector3()
-  private keys = { a: false, d: false }
   private lastTime = 0
-  private readonly MOVE_SPEED = 15.0 // Units per second
   private audioManager = new AudioManager()
+  private playerController: PlayerController
 
   // HUD state
   private sessionGun: Gun
@@ -102,7 +101,6 @@ export class WesternScene {
   private cylinderRotation = van.state(0)
   private mousePosition = van.state({ x: 0, y: 0 })
   private isDebugVisible = van.state(false)
-  private mousePos = { x: 0, y: 0 } // For camera rotation
 
   constructor() {
     // Create scene
@@ -156,12 +154,17 @@ export class WesternScene {
     // Handle window resize
     window.addEventListener('resize', this.handleResize)
 
-    // Setup controls
-    document.addEventListener('keydown', this.handleKeyDown)
-    document.addEventListener('keyup', this.handleKeyUp)
-    document.addEventListener('mousemove', this.handleMouseMove)
+    // Initialize player controller
+    this.playerController = new PlayerController(
+      this.playerPosition,
+      this.camera,
+      this.container,
+      this.mousePosition,
+      () => this.handleShot(),
+      () => this.reloadWeapon()
+    )
 
-    // Lock pointer on click
+    // Setup controls
     this.container.addEventListener('click', () => {
       this.container.requestPointerLock()
     })
@@ -315,22 +318,6 @@ export class WesternScene {
     }
   }
 
-  private handleMouseMove = (e: MouseEvent) => {
-    if (document.pointerLockElement === this.container) {
-      this.mousePos.x += e.movementX * 0.002
-      this.mousePos.y += e.movementY * 0.002
-
-      // Update HUD mouse position for debug panel
-      this.mousePosition.val = { x: e.clientX, y: e.clientY }
-
-      // Clamp vertical rotation to prevent over-rotation
-      this.mousePos.y = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.mousePos.y))
-
-      this.targetRotation.y = -this.mousePos.x
-      this.targetRotation.x = -this.mousePos.y
-    }
-  }
-
   private handleResize = () => {
     const width = window.innerWidth
     const height = window.innerHeight
@@ -338,35 +325,6 @@ export class WesternScene {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width, height)
-  }
-
-  private handleKeyDown = (e: KeyboardEvent) => {
-    switch (e.key.toLowerCase()) {
-      case 'a':
-        this.keys.a = true
-        break
-      case 'd':
-        this.keys.d = true
-        break
-      case ' ':
-        e.preventDefault() // Prevent page scroll
-        this.handleShot()
-        break
-      case 'r':
-        this.reloadWeapon()
-        break
-    }
-  }
-
-  private handleKeyUp = (e: KeyboardEvent) => {
-    switch (e.key.toLowerCase()) {
-      case 'a':
-        this.keys.a = false
-        break
-      case 'd':
-        this.keys.d = false
-        break
-    }
   }
 
   private animate = () => {
@@ -379,20 +337,8 @@ export class WesternScene {
     const deltaTime = (currentTime - this.lastTime) / 1000 // Convert to seconds
     this.lastTime = currentTime
 
-    // Handle movement with delta time - strafe along world X axis
-    if (this.keys.a) {
-      this.playerPosition.x -= this.MOVE_SPEED * deltaTime
-    }
-    if (this.keys.d) {
-      this.playerPosition.x += this.MOVE_SPEED * deltaTime
-    }
-
-    // Update camera position
-    this.camera.position.copy(this.playerPosition)
-
-    // Smoothly rotate camera
-    this.camera.rotation.x += (this.targetRotation.x - this.camera.rotation.x) * 0.1
-    this.camera.rotation.y += (this.targetRotation.y - this.camera.rotation.y) * 0.1
+    // Update player controller
+    this.playerController.update(deltaTime)
 
     // Animate dust particles
     this.dustParticles.animate(deltaTime)
@@ -402,11 +348,9 @@ export class WesternScene {
 
   public destroy() {
     this.isDestroyed = true
-    document.removeEventListener('keydown', this.handleKeyDown)
-    document.removeEventListener('keyup', this.handleKeyUp)
-    document.removeEventListener('mousemove', this.handleMouseMove)
     this.container.removeEventListener('mousedown', this.handleShot)
     window.removeEventListener('resize', this.handleResize)
+    this.playerController.destroy()
     document.exitPointerLock()
     this.container.remove()
     this.renderer.dispose()
