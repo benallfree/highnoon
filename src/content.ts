@@ -7,6 +7,9 @@ const { div } = van.tags
 
 console.log('Content script loaded')
 
+// Global flag to track if game is already embedded
+let isGameEmbedded = false
+
 // Select the Remington 1858 for this session
 const sessionGun = guns.remington1858
 
@@ -35,13 +38,15 @@ const checkAndStartGame = () => {
     console.log('Left community, destroying scene')
     westernScene.destroy()
     westernScene = null
+    isGameEmbedded = false
     return
   }
 
   // Start the game if we found the post and it's not already running
-  if (!westernScene && !document.hidden && testPost) {
+  if (!westernScene && !document.hidden && testPost && !isGameEmbedded) {
     console.log('Scene opened')
     playRandomDraw() // Play the draw sound when scene appears
+    isGameEmbedded = true
 
     // Create a container for the game using VanJS
     const gameContainer = div({
