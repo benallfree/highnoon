@@ -46,8 +46,9 @@ const checkAndStartGame = () => {
     // Create a container for the game using VanJS
     const gameContainer = div({
       style: `
-        width: 100%;
         height: 400px;
+        margin-left: 10px;
+        margin-right: 10px;
         margin-top: 10px;
         margin-bottom: 10px;
         background-color: #d3b98d;
