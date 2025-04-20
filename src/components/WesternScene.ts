@@ -397,11 +397,17 @@ export class WesternScene {
       this.remainingShots.val -= 1
       if (this.sessionGun.shot) {
         const shotSound = new Audio(this.sessionGun.shot)
-        shotSound.play()
+        shotSound.load()
+        shotSound.play().catch((err) => {
+          console.warn('Failed to play shot sound:', err)
+        })
       }
     } else if (this.sessionGun.emptyClick) {
       const emptySound = new Audio(this.sessionGun.emptyClick)
-      emptySound.play()
+      emptySound.load()
+      emptySound.play().catch((err) => {
+        console.warn('Failed to play empty click sound:', err)
+      })
     }
   }
 
