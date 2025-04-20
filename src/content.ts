@@ -3,7 +3,7 @@ import { playRandomDraw } from './audio'
 import { createWesternScene } from './components/WesternScene'
 import { guns } from './gun'
 
-const { div } = van.tags
+const { div, iframe } = van.tags
 
 console.log('Content script loaded')
 
@@ -40,43 +40,58 @@ const checkAndStartGame = () => {
   const testPost = findTestPost()
 
   // If we're not in the community anymore but the scene is active, destroy it
-  if (!testPost && westernScene) {
-    console.log('Left community, destroying scene')
-    westernScene.destroy()
-    westernScene = null
+  if (!testPost) {
+    console.log('Left community or valid post not found')
+    if (westernScene) {
+      westernScene.destroy()
+      westernScene = null
+    }
+    // Remove any existing game iframes
+    document.querySelectorAll('iframe').forEach((iframe) => {
+      if (iframe.src === 'https://sugarglide.benallfree.com') {
+        iframe.remove()
+      }
+    })
     isGameEmbedded = false
     return
   }
 
   // Start the game if we found the post and it's not already running
-  if (!westernScene && !document.hidden && testPost && !isGameEmbedded) {
-    console.log('Scene opened')
-    playRandomDraw() // Play the draw sound when scene appears
-    isGameEmbedded = true
-
-    // Create a container for the game using VanJS
-    const gameContainer = div({
-      style: `
-        height: 400px;
-        margin-left: 10px;
-        margin-right: 10px;
-        margin-top: 10px;
-        margin-bottom: 10px;
-        background-color: #d3b98d;
-        border-radius: 16px;
-        overflow: hidden;
-      `,
+  if (!westernScene && !document.hidden && testPost) {
+    // Remove any existing game iframes first
+    document.querySelectorAll('iframe').forEach((iframe) => {
+      if (iframe.src === 'https://sugarglide.benallfree.com') {
+        iframe.remove()
+        isGameEmbedded = false
+      }
     })
 
-    // Insert the container after the article
-    testPost.parentNode?.insertBefore(gameContainer, testPost.nextSibling)
+    if (!isGameEmbedded) {
+      console.log('Scene opened')
+      playRandomDraw() // Play the draw sound when scene appears
+      isGameEmbedded = true
 
-    // Create the western scene inside the container
-    westernScene = createWesternScene({
-      width: gameContainer.clientWidth,
-      height: gameContainer.clientHeight,
-      container: gameContainer,
-    })
+      // Create a container for the game using VanJS
+      const gameContainer = iframe({
+        src: 'https://sugarglide.benallfree.com',
+        style: `
+          height: 400px;
+          margin-left: 10px;
+          margin-right: 10px;
+          margin-top: 10px;
+          margin-bottom: 10px;
+          border: none;
+          border-radius: 16px;
+          overflow: hidden;
+        `,
+      })
+
+      // Insert the container after the article
+      testPost.parentNode?.insertBefore(gameContainer, testPost.nextSibling)
+
+      // No need to create western scene for iframe
+      westernScene = null
+    }
   }
 }
 
