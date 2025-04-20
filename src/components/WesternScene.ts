@@ -15,6 +15,9 @@ export class WesternScene {
   private dustParticles: THREE.Points
   private mousePosition = { x: 0, y: 0 }
   private targetRotation = new THREE.Vector3()
+  private keys = { a: false, d: false }
+  private lastTime = 0
+  private readonly MOVE_SPEED = 5.0 // Units per second
 
   constructor() {
     // Create scene
@@ -73,6 +76,7 @@ export class WesternScene {
 
     // Setup controls
     document.addEventListener('keydown', this.handleKeyDown)
+    document.addEventListener('keyup', this.handleKeyUp)
     document.addEventListener('mousemove', this.handleMouseMove)
 
     // Lock pointer on click
@@ -316,21 +320,25 @@ export class WesternScene {
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
-    const moveSpeed = 0.2
-
     switch (e.key.toLowerCase()) {
       case 'a':
-        this.playerPosition.x -= moveSpeed * Math.cos(this.targetRotation.y)
-        this.playerPosition.z -= moveSpeed * Math.sin(this.targetRotation.y)
+        this.keys.a = true
         break
       case 'd':
-        this.playerPosition.x += moveSpeed * Math.cos(this.targetRotation.y)
-        this.playerPosition.z += moveSpeed * Math.sin(this.targetRotation.y)
+        this.keys.d = true
         break
     }
+  }
 
-    // Update camera position
-    this.camera.position.copy(this.playerPosition)
+  private handleKeyUp = (e: KeyboardEvent) => {
+    switch (e.key.toLowerCase()) {
+      case 'a':
+        this.keys.a = false
+        break
+      case 'd':
+        this.keys.d = false
+        break
+    }
   }
 
   private animate = () => {
@@ -338,14 +346,32 @@ export class WesternScene {
 
     requestAnimationFrame(this.animate)
 
+    // Calculate time delta
+    const currentTime = performance.now()
+    const deltaTime = (currentTime - this.lastTime) / 1000 // Convert to seconds
+    this.lastTime = currentTime
+
+    // Handle movement with delta time
+    if (this.keys.a) {
+      this.playerPosition.x -= this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
+      this.playerPosition.z -= this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
+    }
+    if (this.keys.d) {
+      this.playerPosition.x += this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
+      this.playerPosition.z += this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
+    }
+
+    // Update camera position
+    this.camera.position.copy(this.playerPosition)
+
     // Smoothly rotate camera
     this.camera.rotation.x += (this.targetRotation.x - this.camera.rotation.x) * 0.1
     this.camera.rotation.y += (this.targetRotation.y - this.camera.rotation.y) * 0.1
 
-    // Animate dust particles
+    // Animate dust particles with delta time
     const positions = this.dustParticles.geometry.attributes.position.array
     for (let i = 0; i < positions.length; i += 3) {
-      positions[i + 2] += 0.01
+      positions[i + 2] += 0.5 * deltaTime // Scale dust movement with delta time too
       if (positions[i + 2] > 50) positions[i + 2] = -50
     }
     this.dustParticles.geometry.attributes.position.needsUpdate = true
@@ -360,6 +386,7 @@ export class WesternScene {
   public destroy() {
     this.isDestroyed = true
     document.removeEventListener('keydown', this.handleKeyDown)
+    document.removeEventListener('keyup', this.handleKeyUp)
     document.removeEventListener('mousemove', this.handleMouseMove)
     window.removeEventListener('resize', this.handleResize)
     document.exitPointerLock()
