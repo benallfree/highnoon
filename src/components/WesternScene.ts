@@ -1,7 +1,82 @@
 import * as THREE from 'three'
-import van from 'vanjs-core'
+import van, { State } from 'vanjs-core'
+import { Gun, guns } from '../gun'
+import { DebugPanel } from './DebugPanel'
+import { ReloadButton } from './ReloadButton'
+import { RevolverCylinder } from './RevolverCylinder'
 
 const { div } = van.tags
+
+const Crosshair = () =>
+  div(
+    {
+      style: `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 24px;
+      user-select: none;
+      text-shadow: 0 0 5px rgba(0,0,0,0.5);
+    `,
+    },
+    '+'
+  )
+
+const GameContainer = (props: { renderer: THREE.WebGLRenderer; children: any }) =>
+  div(
+    {
+      style: `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    `,
+    },
+    props.renderer.domElement,
+    props.children
+  )
+
+const GameHUD = (props: {
+  isDebugVisible: State<boolean>
+  sessionGun: Gun
+  remainingShots: State<number>
+  cylinderRotation: State<number>
+  mousePosition: State<{ x: number; y: number }>
+  onReload: () => void
+}) => {
+  return div(
+    {
+      style: `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+      `,
+    },
+    div(
+      { style: 'pointer-events: auto; position: fixed; top: 0; left: 0;' },
+      DebugPanel(props.isDebugVisible, props.sessionGun, props.remainingShots, props.mousePosition)
+    ),
+    div(
+      { style: 'pointer-events: auto; position: fixed; top: 20px; right: 20px;' },
+      RevolverCylinder(props.remainingShots, props.cylinderRotation)
+    ),
+    div(
+      { style: 'pointer-events: auto; position: fixed; top: 140px; right: 20px;' },
+      ReloadButton(props.remainingShots, props.sessionGun, props.onReload)
+    )
+  )
+}
 
 export class WesternScene {
   private scene: THREE.Scene
@@ -10,14 +85,20 @@ export class WesternScene {
   private container: HTMLDivElement
   private isDestroyed = false
   private playerPosition: THREE.Vector3
-  private crosshair: HTMLDivElement
   private enemyCowboy!: THREE.Group
   private dustParticles: THREE.Points
-  private mousePosition = { x: 0, y: 0 }
   private targetRotation = new THREE.Vector3()
   private keys = { a: false, d: false }
   private lastTime = 0
-  private readonly MOVE_SPEED = 5.0 // Units per second
+  private readonly MOVE_SPEED = 15.0 // Units per second
+
+  // HUD state
+  private sessionGun: Gun
+  private remainingShots = van.state(6)
+  private cylinderRotation = van.state(0)
+  private mousePosition = van.state({ x: 0, y: 0 })
+  private isDebugVisible = van.state(false)
+  private mousePos = { x: 0, y: 0 } // For camera rotation
 
   constructor() {
     // Create scene
@@ -38,35 +119,32 @@ export class WesternScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
 
-    // Create container
-    this.container = document.createElement('div')
-    this.container.style.position = 'fixed'
-    this.container.style.top = '0'
-    this.container.style.left = '0'
-    this.container.style.width = '100%'
-    this.container.style.height = '100%'
-    this.container.style.zIndex = '1'
-    this.container.appendChild(this.renderer.domElement)
-
-    // Create crosshair
-    this.crosshair = document.createElement('div')
-    this.crosshair.style.position = 'fixed'
-    this.crosshair.style.top = '50%'
-    this.crosshair.style.left = '50%'
-    this.crosshair.style.width = '20px'
-    this.crosshair.style.height = '20px'
-    this.crosshair.style.transform = 'translate(-50%, -50%)'
-    this.crosshair.style.zIndex = '2'
-    this.crosshair.innerHTML = '+'
-    this.crosshair.style.color = 'rgba(255, 255, 255, 0.8)'
-    this.crosshair.style.fontSize = '24px'
-    this.crosshair.style.userSelect = 'none'
-    this.crosshair.style.textShadow = '0 0 5px rgba(0,0,0,0.5)'
-    this.container.appendChild(this.crosshair)
-
     // Create dust particles
     this.dustParticles = this.createDustParticles()
     this.scene.add(this.dustParticles)
+
+    // Initialize gun
+    this.sessionGun = guns.remington1858
+    this.remainingShots.val = this.sessionGun.capacity
+
+    // Mount game container and UI
+    const gameUI = GameContainer({
+      renderer: this.renderer,
+      children: [
+        Crosshair(),
+        GameHUD({
+          isDebugVisible: this.isDebugVisible,
+          sessionGun: this.sessionGun,
+          remainingShots: this.remainingShots,
+          cylinderRotation: this.cylinderRotation,
+          mousePosition: this.mousePosition,
+          onReload: () => this.reloadWeapon(),
+        }),
+      ],
+    })
+
+    this.container = gameUI as HTMLDivElement
+    document.body.appendChild(this.container)
 
     // Setup scene
     this.setupScene()
@@ -83,6 +161,9 @@ export class WesternScene {
     this.container.addEventListener('click', () => {
       this.container.requestPointerLock()
     })
+
+    // Add mouse down handler for shooting
+    this.container.addEventListener('mousedown', this.handleShot)
 
     // Start animation
     this.animate()
@@ -297,16 +378,44 @@ export class WesternScene {
     this.scene.add(this.camera)
   }
 
+  private reloadWeapon() {
+    if (this.remainingShots.val < this.sessionGun.capacity) {
+      this.remainingShots.val = this.sessionGun.capacity
+      if (this.sessionGun.reload) {
+        const reloadSound = new Audio(this.sessionGun.reload)
+        reloadSound.play()
+      }
+    }
+  }
+
+  private handleShot = (e: MouseEvent) => {
+    e?.preventDefault()
+    this.cylinderRotation.val += 1
+    if (this.remainingShots.val > 0) {
+      this.remainingShots.val -= 1
+      if (this.sessionGun.shot) {
+        const shotSound = new Audio(this.sessionGun.shot)
+        shotSound.play()
+      }
+    } else if (this.sessionGun.emptyClick) {
+      const emptySound = new Audio(this.sessionGun.emptyClick)
+      emptySound.play()
+    }
+  }
+
   private handleMouseMove = (e: MouseEvent) => {
     if (document.pointerLockElement === this.container) {
-      this.mousePosition.x += e.movementX * 0.002
-      this.mousePosition.y += e.movementY * 0.002
+      this.mousePos.x += e.movementX * 0.002
+      this.mousePos.y += e.movementY * 0.002
+
+      // Update HUD mouse position for debug panel
+      this.mousePosition.val = { x: e.clientX, y: e.clientY }
 
       // Clamp vertical rotation to prevent over-rotation
-      this.mousePosition.y = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.mousePosition.y))
+      this.mousePos.y = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.mousePos.y))
 
-      this.targetRotation.y = -this.mousePosition.x
-      this.targetRotation.x = -this.mousePosition.y
+      this.targetRotation.y = -this.mousePos.x
+      this.targetRotation.x = -this.mousePos.y
     }
   }
 
@@ -326,6 +435,13 @@ export class WesternScene {
         break
       case 'd':
         this.keys.d = true
+        break
+      case ' ':
+        e.preventDefault() // Prevent page scroll
+        this.handleShot(null as any)
+        break
+      case 'r':
+        this.reloadWeapon()
         break
     }
   }
@@ -351,14 +467,12 @@ export class WesternScene {
     const deltaTime = (currentTime - this.lastTime) / 1000 // Convert to seconds
     this.lastTime = currentTime
 
-    // Handle movement with delta time
+    // Handle movement with delta time - strafe along world X axis
     if (this.keys.a) {
-      this.playerPosition.x -= this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
-      this.playerPosition.z -= this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
+      this.playerPosition.x -= this.MOVE_SPEED * deltaTime
     }
     if (this.keys.d) {
-      this.playerPosition.x += this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
-      this.playerPosition.z += this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
+      this.playerPosition.x += this.MOVE_SPEED * deltaTime
     }
 
     // Update camera position
@@ -371,7 +485,7 @@ export class WesternScene {
     // Animate dust particles with delta time
     const positions = this.dustParticles.geometry.attributes.position.array
     for (let i = 0; i < positions.length; i += 3) {
-      positions[i + 2] += 0.5 * deltaTime // Scale dust movement with delta time too
+      positions[i + 2] += 0.5 * deltaTime
       if (positions[i + 2] > 50) positions[i + 2] = -50
     }
     this.dustParticles.geometry.attributes.position.needsUpdate = true
@@ -379,15 +493,12 @@ export class WesternScene {
     this.renderer.render(this.scene, this.camera)
   }
 
-  public mount() {
-    document.body.appendChild(this.container)
-  }
-
   public destroy() {
     this.isDestroyed = true
     document.removeEventListener('keydown', this.handleKeyDown)
     document.removeEventListener('keyup', this.handleKeyUp)
     document.removeEventListener('mousemove', this.handleMouseMove)
+    this.container.removeEventListener('mousedown', this.handleShot)
     window.removeEventListener('resize', this.handleResize)
     document.exitPointerLock()
     this.container.remove()
@@ -397,6 +508,5 @@ export class WesternScene {
 
 export const createWesternScene = () => {
   const scene = new WesternScene()
-  scene.mount()
   return scene
 }
