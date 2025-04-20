@@ -39,7 +39,8 @@ export class GunController {
       roughness: 0.2,
     })
     const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial)
-    barrel.rotation.z = Math.PI / 2
+    barrel.rotation.z = 0
+    barrel.rotation.x = Math.PI / 2 // Rotate around x-axis to point forward (-z)
     barrel.position.z = 0.2
     gun.add(barrel)
 
@@ -59,13 +60,13 @@ export class GunController {
 
   private addGunToCamera(camera: THREE.Camera) {
     // Position the gun in the bottom right of the view
-    this.gunModel.position.set(0.5, -0.4, -1)
-    this.gunModel.rotation.set(0, 0, 0)
+    this.gunModel.position.set(0.5, -0.6, -1)
+    this.gunModel.rotation.set(0, Math.PI, 0) // Rotate 180 degrees around Y to face forward
     camera.add(this.gunModel)
 
     // Add muzzle flash at the end of the barrel
     const muzzleFlashMesh = this.muzzleFlash.getMesh()
-    muzzleFlashMesh.position.set(0, 0, 0.4) // Position at barrel end
+    muzzleFlashMesh.position.set(0, 0, 0.6) // Position at barrel end
     this.gunModel.add(muzzleFlashMesh)
   }
 
