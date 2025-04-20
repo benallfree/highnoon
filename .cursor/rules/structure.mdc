@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+* this is a chrome extension cowboy shooting game 
+* src/main.ts is the icon popup
+* src/content.ts is the entry point for the game
