@@ -12,7 +12,7 @@ const isOverlayVisible = van.state(false)
 
 // Initialize timer variables
 let idleTimer: number | null = null
-const IDLE_TIMEOUT = 5000 // 30 seconds in milliseconds
+const IDLE_TIMEOUT = 1000 // 1 second for testing
 
 // Reset the idle timer
 const resetIdleTimer = () => {
@@ -20,15 +20,45 @@ const resetIdleTimer = () => {
     clearTimeout(idleTimer)
   }
 
+  // Don't start timer if overlay is visible or page is hidden
+  if (isOverlayVisible.val || document.hidden) {
+    return
+  }
+
   // Start new timer
   idleTimer = window.setTimeout(() => {
     isOverlayVisible.val = true
-    van.add(document.body, Overlay(sessionGun))
+    console.log('Overlay opened')
+    const overlay = Overlay({
+      gun: sessionGun,
+      onClose: () => {
+        console.log('Overlay closed')
+        document.body.removeChild(overlay)
+        isOverlayVisible.val = false
+        resetIdleTimer() // Restart the timer after closing
+      },
+    })
+    van.add(document.body, overlay)
   }, IDLE_TIMEOUT)
 }
 
-// Add mouse movement listener
-document.addEventListener('mousemove', resetIdleTimer)
+// Handle page visibility changes
+document.addEventListener('visibilitychange', () => {
+  console.log('visibilitychange', document.hidden)
+  if (document.hidden && idleTimer) {
+    clearTimeout(idleTimer)
+  } else {
+    resetIdleTimer()
+  }
+})
 
-// Start the initial timer
-resetIdleTimer()
+// Add mouse and keyboard event listeners
+document.addEventListener('mousemove', resetIdleTimer)
+document.addEventListener('keydown', resetIdleTimer)
+document.addEventListener('mousedown', resetIdleTimer)
+document.addEventListener('keyup', resetIdleTimer)
+
+// Start the initial timer only if page is visible
+if (!document.hidden) {
+  resetIdleTimer()
+}

@@ -12,21 +12,26 @@ export interface BulletHole extends GunShot {
   size: number
 }
 
-export const Overlay = (sessionGun: Gun) => {
+export interface OverlayOptions {
+  gun: Gun
+  onClose?: () => void
+}
+
+export const Overlay = ({ gun, onClose }: OverlayOptions) => {
   const overlayStyle =
     'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; cursor: crosshair;'
 
   // State for gunshot markers and ammo
   const gunshots = van.state<BulletHole[]>([])
-  const remainingShots = van.state(sessionGun.capacity)
+  const remainingShots = van.state(gun.capacity)
   const cylinderRotation = van.state(0)
   const mousePosition = van.state({ x: 0, y: 0 })
   const isDebugVisible = van.state(false)
 
   const reloadWeapon = () => {
-    if (remainingShots.val < sessionGun.capacity) {
-      remainingShots.val = sessionGun.capacity
-      const reloadSound = new Audio(sessionGun.reload)
+    if (remainingShots.val < gun.capacity) {
+      remainingShots.val = gun.capacity
+      const reloadSound = new Audio(gun.reload)
       reloadSound.play()
     }
   }
@@ -42,10 +47,10 @@ export const Overlay = (sessionGun: Gun) => {
       }
       gunshots.val = [...gunshots.val, newBulletHole]
       remainingShots.val -= 1
-      const shotSound = new Audio(sessionGun.shot)
+      const shotSound = new Audio(gun.shot)
       shotSound.play()
     } else {
-      const emptySound = new Audio(sessionGun.emptyClick)
+      const emptySound = new Audio(gun.emptyClick)
       emptySound.play()
     }
   }
@@ -62,21 +67,38 @@ export const Overlay = (sessionGun: Gun) => {
   }
 
   const handleGlobalKeyEvent = (e: KeyboardEvent) => {
-    if (e.code === 'KeyR' && remainingShots.val < sessionGun.capacity) {
-      e.preventDefault()
-      reloadWeapon()
-    } else if (e.code === 'Space' && e.type === 'keydown') {
-      e.preventDefault()
-      fireWeapon(mousePosition.val.x, mousePosition.val.y)
+    // Always prevent default and stop propagation for any key
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Only handle actual actions on keydown
+    if (e.type === 'keydown') {
+      console.log('handleGlobalKeyEvent', e.code)
+      if (e.code === 'KeyR' && remainingShots.val < gun.capacity) {
+        reloadWeapon()
+      } else if (e.code === 'Space') {
+        fireWeapon(mousePosition.val.x, mousePosition.val.y)
+      } else if (e.code === 'KeyC' && onClose) {
+        wrappedOnClose()
+      }
     }
   }
 
-  van.derive(() => {
-    window.addEventListener('keydown', handleGlobalKeyEvent)
-    return () => {
-      window.removeEventListener('keydown', handleGlobalKeyEvent)
-    }
-  })
+  // Setup cleanup function
+  const cleanup = () => {
+    window.removeEventListener('keydown', handleGlobalKeyEvent)
+    window.removeEventListener('keypress', handleGlobalKeyEvent)
+  }
+
+  // Add the event listeners and wrap onClose to include cleanup
+  window.addEventListener('keydown', handleGlobalKeyEvent)
+  window.addEventListener('keypress', handleGlobalKeyEvent)
+  const wrappedOnClose = onClose
+    ? () => {
+        cleanup()
+        onClose()
+      }
+    : undefined
 
   const Gunshots = () => {
     return () => {
@@ -94,9 +116,9 @@ export const Overlay = (sessionGun: Gun) => {
       onmousemove: handleMouseEvent,
       tabindex: 0,
     },
-    DebugPanel(isDebugVisible, sessionGun, remainingShots, mousePosition),
+    DebugPanel(isDebugVisible, gun, remainingShots, mousePosition),
     RevolverCylinder(remainingShots, cylinderRotation),
-    ReloadButton(remainingShots, sessionGun, reloadWeapon),
+    ReloadButton(remainingShots, gun, reloadWeapon),
     div({ class: 'game' }, Gunshots())
   )
 }
