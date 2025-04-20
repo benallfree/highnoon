@@ -64,7 +64,8 @@ export class WesternScene {
       this.remainingShots,
       this.cylinderRotation,
       this.audioManager,
-      this.camera
+      this.camera,
+      this.scene
     )
 
     // Mount game container and UI

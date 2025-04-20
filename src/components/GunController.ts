@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { State } from 'vanjs-core'
 import { Gun } from '../gun'
 import { AudioManager } from './AudioManager'
+import { BulletHoleDecal } from './BulletHoleDecal'
 import { MuzzleFlash } from './MuzzleFlash'
 
 export class GunController {
@@ -11,20 +12,27 @@ export class GunController {
   private cylinderRotation: State<number>
   private audioManager: AudioManager
   private muzzleFlash: MuzzleFlash
+  private bulletHoleDecal: BulletHoleDecal
+  private raycaster: THREE.Raycaster
+  private scene: THREE.Scene
 
   constructor(
     gun: Gun,
     remainingShots: State<number>,
     cylinderRotation: State<number>,
     audioManager: AudioManager,
-    camera: THREE.Camera
+    camera: THREE.Camera,
+    scene: THREE.Scene
   ) {
     this.gun = gun
     this.remainingShots = remainingShots
     this.cylinderRotation = cylinderRotation
     this.audioManager = audioManager
+    this.scene = scene
     this.gunModel = this.createGunModel()
     this.muzzleFlash = new MuzzleFlash()
+    this.bulletHoleDecal = new BulletHoleDecal()
+    this.raycaster = new THREE.Raycaster()
     this.addGunToCamera(camera)
   }
 
@@ -76,6 +84,23 @@ export class GunController {
       this.remainingShots.val -= 1
       this.audioManager.playSound(this.gun.shot)
       this.muzzleFlash.flash()
+
+      // Cast ray from center of screen
+      const camera = this.gunModel.parent as THREE.Camera
+      this.raycaster.setFromCamera(new THREE.Vector2(0, 0), camera)
+
+      // Check for intersections with buildings
+      const intersects = this.raycaster.intersectObjects(this.scene.children, true)
+
+      for (const intersect of intersects) {
+        const mesh = intersect.object as THREE.Mesh
+        // Only create bullet holes on building walls (brown color)
+        if (mesh.material instanceof THREE.MeshStandardMaterial && mesh.material.color.getHex() === 0x8b4513) {
+          const decal = this.bulletHoleDecal.createDecal(intersect.point, intersect.face!.normal)
+          this.scene.add(decal)
+          break
+        }
+      }
     } else {
       this.audioManager.playSound(this.gun.emptyClick)
     }
