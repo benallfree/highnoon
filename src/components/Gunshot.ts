@@ -1,8 +1,12 @@
 import van from 'vanjs-core'
 import { isDarkMode } from './DebugPanel'
-import { BulletHole } from './Overlay'
 
 const { div } = van.tags
+
+export interface BulletHole extends GunShot {
+  rotation: number
+  size: number
+}
 
 export interface GunShot {
   x: number
