@@ -30,7 +30,6 @@ const findTestPost = () => {
 
 // Function to check and potentially start the game
 const checkAndStartGame = () => {
-  console.log('checkAndStartGame')
   const testPost = findTestPost()
 
   // If we're not in the community anymore but the scene is active, destroy it
@@ -88,7 +87,6 @@ document.addEventListener('visibilitychange', () => {
 
 // Create a mutation observer to watch for URL/content changes
 const observer = new MutationObserver(() => {
-  console.log('mutation observer')
   checkAndStartGame()
 })
 
