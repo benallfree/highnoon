@@ -171,6 +171,9 @@ export class WesternScene {
     // Update player controller
     this.playerController.update(deltaTime)
 
+    // Update gun controller
+    this.gunController.update()
+
     // Animate dust particles
     this.dustParticles.animate(deltaTime)
 
