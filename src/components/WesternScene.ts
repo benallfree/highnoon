@@ -116,7 +116,7 @@ export class WesternScene {
 
   private setupScene() {
     // Add lighting
-    new SceneLighting(this.scene)
+    new SceneLighting(this.scene, this.camera)
 
     // Create ground
     const groundGeometry = new THREE.PlaneGeometry(100, 100, 50, 50)

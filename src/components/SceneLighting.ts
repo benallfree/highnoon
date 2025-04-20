@@ -4,7 +4,7 @@ export class SceneLighting {
   private ambientLight: THREE.AmbientLight
   private sunLight: THREE.DirectionalLight
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, camera: THREE.Camera) {
     // Add warm ambient lighting
     this.ambientLight = new THREE.AmbientLight(0xfff2e6, 0.4)
     scene.add(this.ambientLight)
@@ -18,5 +18,17 @@ export class SceneLighting {
     this.sunLight.shadow.camera.near = 0.5
     this.sunLight.shadow.camera.far = 500
     scene.add(this.sunLight)
+
+    // Add camera-attached lights for the gun model
+    const gunLight = new THREE.DirectionalLight(0xffffff, 1.0)
+    gunLight.position.set(1, 1, 1)
+    camera.add(gunLight)
+
+    const gunPointLight = new THREE.PointLight(0xffffff, 0.5)
+    gunPointLight.position.set(0, 0.5, -1)
+    camera.add(gunPointLight)
+
+    // Make sure the camera is added to the scene after adding lights
+    scene.add(camera)
   }
 }
