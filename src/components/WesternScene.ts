@@ -388,8 +388,10 @@ export class WesternScene {
     }
   }
 
-  private handleShot = (e: MouseEvent) => {
-    e?.preventDefault()
+  private handleShot = (e?: MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+    }
     this.cylinderRotation.val += 1
     if (this.remainingShots.val > 0) {
       this.remainingShots.val -= 1
@@ -438,7 +440,7 @@ export class WesternScene {
         break
       case ' ':
         e.preventDefault() // Prevent page scroll
-        this.handleShot(null as any)
+        this.handleShot()
         break
       case 'r':
         this.reloadWeapon()
