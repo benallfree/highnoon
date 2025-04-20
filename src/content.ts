@@ -1,6 +1,5 @@
-import van from 'vanjs-core'
 import { playRandomDraw } from './audio'
-import { Overlay } from './components/Overlay'
+import { createWesternScene } from './components/WesternScene'
 import { guns } from './gun'
 
 console.log('Content script loaded')
@@ -8,12 +7,11 @@ console.log('Content script loaded')
 // Select the Remington 1858 for this session
 const sessionGun = guns.remington1858
 
-// Create state for overlay visibility
-const isOverlayVisible = van.state(false)
+let westernScene: ReturnType<typeof createWesternScene> | null = null
 
 // Initialize timer variables
 let idleTimer: number | null = null
-const IDLE_TIMEOUT = 5000 // 1 second for testing
+const IDLE_TIMEOUT = 1000 // 5 seconds
 
 // Reset the idle timer
 const resetIdleTimer = () => {
@@ -21,46 +19,37 @@ const resetIdleTimer = () => {
     clearTimeout(idleTimer)
   }
 
-  // Don't start timer if overlay is visible or page is hidden
-  if (isOverlayVisible.val || document.hidden) {
+  // Don't start timer if scene is already active or page is hidden
+  if (westernScene || document.hidden) {
     return
   }
 
   // Start new timer
   idleTimer = window.setTimeout(() => {
-    isOverlayVisible.val = true
-    console.log('Overlay opened')
-    playRandomDraw() // Play the draw sound when overlay appears
-    const overlay = Overlay({
-      gun: sessionGun,
-      onClose: () => {
-        console.log('Overlay closed')
-        document.body.removeChild(overlay)
-        isOverlayVisible.val = false
-        resetIdleTimer() // Restart the timer after closing
-      },
-    })
-    van.add(document.body, overlay)
+    console.log('Scene opened')
+    playRandomDraw() // Play the draw sound when scene appears
+    westernScene = createWesternScene()
   }, IDLE_TIMEOUT)
 }
 
-// Handle page visibility changes
+// Handle visibility change
 document.addEventListener('visibilitychange', () => {
-  console.log('visibilitychange', document.hidden)
-  if (document.hidden && idleTimer) {
-    clearTimeout(idleTimer)
-  } else {
-    resetIdleTimer()
+  if (document.hidden) {
+    if (westernScene) {
+      westernScene.destroy()
+      westernScene = null
+    }
   }
+  resetIdleTimer()
 })
 
-// Add mouse and keyboard event listeners
-document.addEventListener('mousemove', resetIdleTimer)
-document.addEventListener('keydown', resetIdleTimer)
-document.addEventListener('mousedown', resetIdleTimer)
-document.addEventListener('keyup', resetIdleTimer)
-
-// Start the initial timer only if page is visible
-if (!document.hidden) {
+// Handle mouse movement to prevent scene from appearing
+document.addEventListener('mousemove', () => {
+  if (westernScene) {
+    return // Don't reset timer if scene is active
+  }
   resetIdleTimer()
-}
+})
+
+// Start the idle timer
+resetIdleTimer()
