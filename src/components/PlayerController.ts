@@ -68,6 +68,8 @@ export class PlayerController {
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
+    if (document.pointerLockElement !== this.container) return
+
     switch (e.key.toLowerCase()) {
       case 'w':
         this.keys.w = true
@@ -92,6 +94,8 @@ export class PlayerController {
   }
 
   private handleKeyUp = (e: KeyboardEvent) => {
+    if (document.pointerLockElement !== this.container) return
+
     switch (e.key.toLowerCase()) {
       case 'w':
         this.keys.w = false
