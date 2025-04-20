@@ -5,6 +5,7 @@ import { AudioManager } from './AudioManager'
 import { BuildingFactory } from './BuildingFactory'
 import { DebugPanel } from './DebugPanel'
 import { DustParticles } from './DustParticles'
+import { GunController } from './GunController'
 import { PlayerController } from './PlayerController'
 import { ReloadButton } from './ReloadButton'
 import { RevolverCylinder } from './RevolverCylinder'
@@ -94,6 +95,7 @@ export class WesternScene {
   private lastTime = 0
   private audioManager = new AudioManager()
   private playerController: PlayerController
+  private gunController: GunController
 
   // HUD state
   private sessionGun: Gun
@@ -129,6 +131,15 @@ export class WesternScene {
     this.sessionGun = guns.remington1858
     this.remainingShots.val = this.sessionGun.capacity
 
+    // Initialize gun controller
+    this.gunController = new GunController(
+      this.sessionGun,
+      this.remainingShots,
+      this.cylinderRotation,
+      this.audioManager,
+      this.camera
+    )
+
     // Mount game container and UI
     const gameUI = GameContainer({
       renderer: this.renderer,
@@ -140,7 +151,7 @@ export class WesternScene {
           remainingShots: this.remainingShots,
           cylinderRotation: this.cylinderRotation,
           mousePosition: this.mousePosition,
-          onReload: () => this.reloadWeapon(),
+          onReload: () => this.gunController.reload(),
         }),
       ],
     })
@@ -160,8 +171,8 @@ export class WesternScene {
       this.camera,
       this.container,
       this.mousePosition,
-      () => this.handleShot(),
-      () => this.reloadWeapon()
+      () => this.gunController.shoot(),
+      () => this.gunController.reload()
     )
 
     // Setup controls
@@ -170,7 +181,7 @@ export class WesternScene {
     })
 
     // Add mouse down handler for shooting
-    this.container.addEventListener('mousedown', this.handleShot)
+    this.container.addEventListener('mousedown', () => this.gunController.shoot())
 
     // Start animation
     this.animate()
@@ -218,9 +229,6 @@ export class WesternScene {
     this.enemyCowboy = this.createEnemyCowboy()
     this.enemyCowboy.position.set(0, 0, -20)
     this.scene.add(this.enemyCowboy)
-
-    // Add player's gun
-    this.addPlayerGun()
   }
 
   private createDustParticles(): THREE.Points {
@@ -267,57 +275,6 @@ export class WesternScene {
     return cowboy
   }
 
-  private addPlayerGun() {
-    const gun = new THREE.Group()
-
-    // Barrel
-    const barrelGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8)
-    const barrelMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a4a4a,
-      metalness: 0.8,
-      roughness: 0.2,
-    })
-    const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial)
-    barrel.rotation.x = Math.PI / 2
-    gun.add(barrel)
-
-    // Handle
-    const handleGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.1)
-    const handleMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a3c2b,
-      roughness: 0.9,
-    })
-    const handle = new THREE.Mesh(handleGeometry, handleMaterial)
-    handle.position.y = -0.2
-    gun.add(handle)
-
-    // Position the gun in the bottom right of the view
-    gun.position.set(0.3, -0.2, -0.5)
-    gun.rotation.y = -Math.PI / 12
-    this.camera.add(gun)
-    this.scene.add(this.camera)
-  }
-
-  private reloadWeapon() {
-    if (this.remainingShots.val < this.sessionGun.capacity) {
-      this.remainingShots.val = this.sessionGun.capacity
-      this.audioManager.playSound(this.sessionGun.reload)
-    }
-  }
-
-  private handleShot = (e?: MouseEvent) => {
-    if (e) {
-      e.preventDefault()
-    }
-    this.cylinderRotation.val += 1
-    if (this.remainingShots.val > 0) {
-      this.remainingShots.val -= 1
-      this.audioManager.playSound(this.sessionGun.shot)
-    } else {
-      this.audioManager.playSound(this.sessionGun.emptyClick)
-    }
-  }
-
   private handleResize = () => {
     const width = window.innerWidth
     const height = window.innerHeight
@@ -348,7 +305,7 @@ export class WesternScene {
 
   public destroy() {
     this.isDestroyed = true
-    this.container.removeEventListener('mousedown', this.handleShot)
+    this.container.removeEventListener('mousedown', () => this.gunController.shoot())
     window.removeEventListener('resize', this.handleResize)
     this.playerController.destroy()
     document.exitPointerLock()
