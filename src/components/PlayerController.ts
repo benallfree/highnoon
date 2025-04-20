@@ -2,10 +2,11 @@ import * as THREE from 'three'
 import { State } from 'vanjs-core'
 
 export class PlayerController {
-  private keys = { a: false, d: false }
+  private keys = { a: false, d: false, w: false, s: false }
   private mousePos = { x: 0, y: 0 }
   private targetRotation = new THREE.Vector3()
   private readonly MOVE_SPEED = 15.0 // Units per second
+  private moveDirection = new THREE.Vector3()
 
   constructor(
     private playerPosition: THREE.Vector3,
@@ -21,12 +22,25 @@ export class PlayerController {
   }
 
   public update(deltaTime: number) {
-    // Handle movement with delta time - strafe along world X axis
+    // Calculate forward direction based on camera rotation
+    this.moveDirection.set(0, 0, -1).applyEuler(new THREE.Euler(0, this.targetRotation.y, 0))
+
+    // Handle movement with delta time
+    if (this.keys.w) {
+      this.playerPosition.addScaledVector(this.moveDirection, this.MOVE_SPEED * deltaTime)
+    }
+    if (this.keys.s) {
+      this.playerPosition.addScaledVector(this.moveDirection, -this.MOVE_SPEED * deltaTime)
+    }
     if (this.keys.a) {
-      this.playerPosition.x -= this.MOVE_SPEED * deltaTime
+      // Strafe left - perpendicular to forward direction
+      this.playerPosition.x -= this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
+      this.playerPosition.z -= this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
     }
     if (this.keys.d) {
-      this.playerPosition.x += this.MOVE_SPEED * deltaTime
+      // Strafe right - perpendicular to forward direction
+      this.playerPosition.x += this.MOVE_SPEED * deltaTime * Math.cos(this.targetRotation.y)
+      this.playerPosition.z += this.MOVE_SPEED * deltaTime * Math.sin(this.targetRotation.y)
     }
 
     // Update camera position
@@ -55,6 +69,12 @@ export class PlayerController {
 
   private handleKeyDown = (e: KeyboardEvent) => {
     switch (e.key.toLowerCase()) {
+      case 'w':
+        this.keys.w = true
+        break
+      case 's':
+        this.keys.s = true
+        break
       case 'a':
         this.keys.a = true
         break
@@ -73,6 +93,12 @@ export class PlayerController {
 
   private handleKeyUp = (e: KeyboardEvent) => {
     switch (e.key.toLowerCase()) {
+      case 'w':
+        this.keys.w = false
+        break
+      case 's':
+        this.keys.s = false
+        break
       case 'a':
         this.keys.a = false
         break
