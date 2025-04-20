@@ -17,13 +17,20 @@ let westernScene: ReturnType<typeof createWesternScene> | null = null
 
 // Check if we're in the High Noon community
 const findTestPost = () => {
-  // Look for posts containing "test post"
+  // Only proceed if we're on a specific post URL
+  if (!window.location.pathname.match(/\/[^\/]+\/status\/\d+$/)) return null
+
+  // Look for any top-level post (not replies)
   const postText = document.querySelector('div[data-testid="tweetText"]')
-  if (!postText?.textContent?.toLowerCase().includes('test post')) return null
+  if (!postText) return null
 
   // Find the article element containing this post
   const article = postText.closest('article')
   if (!article) return null
+
+  // Check if this is a top-level post by looking for reply indicators
+  const isReply = article.querySelector('[data-testid="socialContext"]')
+  if (isReply) return null
 
   return article
 }
