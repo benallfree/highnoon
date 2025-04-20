@@ -1,4 +1,5 @@
 import van from 'vanjs-core'
+import { playRandomDraw } from './audio'
 import { Overlay } from './components/Overlay'
 import { guns } from './gun'
 
@@ -29,6 +30,7 @@ const resetIdleTimer = () => {
   idleTimer = window.setTimeout(() => {
     isOverlayVisible.val = true
     console.log('Overlay opened')
+    playRandomDraw() // Play the draw sound when overlay appears
     const overlay = Overlay({
       gun: sessionGun,
       onClose: () => {
