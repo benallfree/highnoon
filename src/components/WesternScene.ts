@@ -9,6 +9,7 @@ import { GunController } from './GunController'
 import { PlayerController } from './PlayerController'
 import { ReloadButton } from './ReloadButton'
 import { RevolverCylinder } from './RevolverCylinder'
+import { SceneLighting } from './SceneLighting'
 
 const { div } = van.tags
 
@@ -189,17 +190,7 @@ export class WesternScene {
 
   private setupScene() {
     // Add lighting
-    const ambientLight = new THREE.AmbientLight(0xfff2e6, 0.4) // Warm ambient
-    this.scene.add(ambientLight)
-
-    const sunLight = new THREE.DirectionalLight(0xfff2e6, 1.5)
-    sunLight.position.set(50, 100, 50)
-    sunLight.castShadow = true
-    sunLight.shadow.mapSize.width = 2048
-    sunLight.shadow.mapSize.height = 2048
-    sunLight.shadow.camera.near = 0.5
-    sunLight.shadow.camera.far = 500
-    this.scene.add(sunLight)
+    new SceneLighting(this.scene)
 
     // Create ground
     const groundGeometry = new THREE.PlaneGeometry(100, 100, 50, 50)
@@ -229,11 +220,6 @@ export class WesternScene {
     this.enemyCowboy = this.createEnemyCowboy()
     this.enemyCowboy.position.set(0, 0, -20)
     this.scene.add(this.enemyCowboy)
-  }
-
-  private createDustParticles(): THREE.Points {
-    // Remove this method as it's now handled by DustParticles class
-    return new THREE.Points()
   }
 
   private createEnemyCowboy(): THREE.Group {
