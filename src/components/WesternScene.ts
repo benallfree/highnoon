@@ -10,6 +10,12 @@ import { GunController } from './GunController'
 import { PlayerController } from './PlayerController'
 import { SceneLighting } from './SceneLighting'
 
+interface WesternSceneOptions {
+  width: number
+  height: number
+  container: HTMLElement
+}
+
 export class WesternScene {
   private scene: THREE.Scene
   private camera: THREE.PerspectiveCamera
@@ -23,6 +29,8 @@ export class WesternScene {
   private audioManager = new AudioManager()
   private playerController: PlayerController
   private gunController: GunController
+  private width: number
+  private height: number
 
   // HUD state
   private sessionGun: Gun
@@ -31,21 +39,24 @@ export class WesternScene {
   private mousePosition = van.state({ x: 0, y: 0 })
   private isDebugVisible = van.state(false)
 
-  constructor() {
+  constructor(options: WesternSceneOptions) {
+    this.width = options.width
+    this.height = options.height
+
     // Create scene
     this.scene = new THREE.Scene()
     this.scene.fog = new THREE.FogExp2(0xd3b98d, 0.02) // Dusty atmosphere
     this.scene.background = new THREE.Color(0xd3b98d) // Warm desert sky
 
     // Create camera
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+    this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1, 1000)
     this.playerPosition = new THREE.Vector3(0, 1.7, 10) // Eye level height
     this.camera.position.copy(this.playerPosition)
     this.camera.lookAt(0, 1.7, -20)
 
     // Create renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
-    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.setSize(this.width, this.height)
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -85,7 +96,10 @@ export class WesternScene {
     })
 
     this.container = gameUI as HTMLDivElement
-    document.body.appendChild(this.container)
+    this.container.style.position = 'relative'
+    this.container.style.width = `${this.width}px`
+    this.container.style.height = `${this.height}px`
+    options.container.appendChild(this.container)
 
     // Setup scene
     this.setupScene()
@@ -192,7 +206,7 @@ export class WesternScene {
   }
 }
 
-export const createWesternScene = () => {
-  const scene = new WesternScene()
+export const createWesternScene = (options: WesternSceneOptions) => {
+  const scene = new WesternScene(options)
   return scene
 }

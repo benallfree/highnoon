@@ -9,7 +9,7 @@ export const RevolverCylinder = (remainingShots: State<number>, rotation: State<
     {
       class: 'revolver-cylinder',
       style: () => `
-        position: fixed;
+        position: absolute;
         top: 20px;
         right: 20px;
         width: 100px;

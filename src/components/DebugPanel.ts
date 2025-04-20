@@ -45,7 +45,7 @@ export const DebugPanel = (
         onmousedown: stopPropagation,
         onmouseup: stopPropagation,
         style: `
-        position: fixed;
+        position: absolute;
         top: 20px;
         left: 20px;
         font-size: 24px;
@@ -76,7 +76,7 @@ export const DebugPanel = (
         onmouseup: stopPropagation,
         style: () =>
           `
-          position: fixed;
+          position: absolute;
           top: 70px;
           left: 20px;
           background: rgba(0, 0, 0, 0.8);

@@ -11,7 +11,7 @@ export const Crosshair = () =>
   div(
     {
       style: `
-      position: fixed;
+      position: absolute;
       top: 50%;
       left: 50%;
       width: 20px;
@@ -31,9 +31,7 @@ export const GameContainer = (props: { renderer: THREE.WebGLRenderer; children: 
   div(
     {
       style: `
-      position: fixed;
-      top: 0;
-      left: 0;
+      position: relative;
       width: 100%;
       height: 100%;
       z-index: 1;
@@ -54,7 +52,7 @@ export const GameHUD = (props: {
   return div(
     {
       style: `
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -64,15 +62,15 @@ export const GameHUD = (props: {
       `,
     },
     div(
-      { style: 'pointer-events: auto; position: fixed; top: 0; left: 0;' },
+      { style: 'pointer-events: auto; position: absolute; top: 10px; left: 10px;' },
       DebugPanel(props.isDebugVisible, props.sessionGun, props.remainingShots, props.mousePosition)
     ),
     div(
-      { style: 'pointer-events: auto; position: fixed; top: 20px; right: 20px;' },
+      { style: 'pointer-events: auto; position: absolute; top: 10px; right: 10px;' },
       RevolverCylinder(props.remainingShots, props.cylinderRotation)
     ),
     div(
-      { style: 'pointer-events: auto; position: fixed; top: 140px; right: 20px;' },
+      { style: 'pointer-events: auto; position: absolute; top: 70px; right: 10px;' },
       ReloadButton(props.remainingShots, props.sessionGun, props.onReload)
     )
   )

@@ -16,8 +16,8 @@ export const ReloadButton = (remainingShots: State<number>, sessionGun: Gun, onR
     {
       onclick: handleClick,
       style: () => `
-        position: fixed;
-        top: 140px;
+        position: absolute;
+        top: 70px;
         right: 20px;
         width: 100px;
         background: #ff3333;
