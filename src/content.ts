@@ -13,7 +13,7 @@ const isOverlayVisible = van.state(false)
 
 // Initialize timer variables
 let idleTimer: number | null = null
-const IDLE_TIMEOUT = 1000 // 1 second for testing
+const IDLE_TIMEOUT = 5000 // 1 second for testing
 
 // Reset the idle timer
 const resetIdleTimer = () => {

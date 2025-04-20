@@ -1,5 +1,6 @@
 import van from 'vanjs-core'
 import { Gun } from '../gun'
+import { createRandomCowboy } from './Cowboy3D'
 import { DebugPanel } from './DebugPanel'
 import { Gunshot, GunShot } from './Gunshot'
 import { ReloadButton } from './ReloadButton'
@@ -28,11 +29,16 @@ export const Overlay = ({ gun, onClose }: OverlayOptions) => {
   const mousePosition = van.state({ x: 0, y: 0 })
   const isDebugVisible = van.state(false)
 
+  // Create a cowboy
+  const cowboy = createRandomCowboy(() => cleanup())
+
   const reloadWeapon = () => {
     if (remainingShots.val < gun.capacity) {
       remainingShots.val = gun.capacity
-      const reloadSound = new Audio(gun.reload)
-      reloadSound.play()
+      if (gun.reload) {
+        const reloadSound = new Audio(gun.reload)
+        reloadSound.play()
+      }
     }
   }
 
@@ -47,9 +53,14 @@ export const Overlay = ({ gun, onClose }: OverlayOptions) => {
       }
       gunshots.val = [...gunshots.val, newBulletHole]
       remainingShots.val -= 1
-      const shotSound = new Audio(gun.shot)
-      shotSound.play()
-    } else {
+      if (gun.shot) {
+        const shotSound = new Audio(gun.shot)
+        shotSound.play()
+      }
+
+      // Check if we hit the cowboy
+      cowboy.checkHit(x, y)
+    } else if (gun.emptyClick) {
       const emptySound = new Audio(gun.emptyClick)
       emptySound.play()
     }
@@ -78,8 +89,8 @@ export const Overlay = ({ gun, onClose }: OverlayOptions) => {
         reloadWeapon()
       } else if (e.code === 'Space') {
         fireWeapon(mousePosition.val.x, mousePosition.val.y)
-      } else if (e.code === 'KeyC' && onClose) {
-        wrappedOnClose()
+      } else if (e.code === 'KeyC') {
+        cleanup()
       }
     }
   }
@@ -88,17 +99,13 @@ export const Overlay = ({ gun, onClose }: OverlayOptions) => {
   const cleanup = () => {
     window.removeEventListener('keydown', handleGlobalKeyEvent)
     window.removeEventListener('keypress', handleGlobalKeyEvent)
+    cowboy.destroy()
+    onClose?.()
   }
 
   // Add the event listeners and wrap onClose to include cleanup
   window.addEventListener('keydown', handleGlobalKeyEvent)
   window.addEventListener('keypress', handleGlobalKeyEvent)
-  const wrappedOnClose = onClose
-    ? () => {
-        cleanup()
-        onClose()
-      }
-    : undefined
 
   const Gunshots = () => {
     return () => {
