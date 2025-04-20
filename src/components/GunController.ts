@@ -29,41 +29,11 @@ export class GunController {
     this.cylinderRotation = cylinderRotation
     this.audioManager = audioManager
     this.scene = scene
-    this.gunModel = this.createGunModel()
+    this.gunModel = this.gun.createModel()
     this.muzzleFlash = new MuzzleFlash()
     this.bulletHoleDecal = new BulletHoleDecal()
     this.raycaster = new THREE.Raycaster()
     this.addGunToCamera(camera)
-  }
-
-  private createGunModel(): THREE.Group {
-    const gun = new THREE.Group()
-
-    // Barrel
-    const barrelGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8)
-    const barrelMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a4a4a,
-      metalness: 0.8,
-      roughness: 0.2,
-    })
-    const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial)
-    barrel.rotation.z = 0
-    barrel.rotation.x = Math.PI / 2 // Rotate around x-axis to point forward (-z)
-    barrel.position.z = 0.2
-    gun.add(barrel)
-
-    // Handle
-    const handleGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.1)
-    const handleMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4a3c2b,
-      roughness: 0.9,
-    })
-    const handle = new THREE.Mesh(handleGeometry, handleMaterial)
-    handle.position.y = -0.15
-    handle.position.z = 0.1
-    gun.add(handle)
-
-    return gun
   }
 
   private addGunToCamera(camera: THREE.Camera) {
@@ -72,9 +42,9 @@ export class GunController {
     this.gunModel.rotation.set(0, Math.PI, 0) // Rotate 180 degrees around Y to face forward
     camera.add(this.gunModel)
 
-    // Add muzzle flash at the end of the barrel
+    // Add muzzle flash at the specified position
     const muzzleFlashMesh = this.muzzleFlash.getMesh()
-    muzzleFlashMesh.position.set(0, 0, 0.6) // Position at barrel end
+    muzzleFlashMesh.position.copy(this.gun.muzzleFlashPosition)
     this.gunModel.add(muzzleFlashMesh)
   }
 
