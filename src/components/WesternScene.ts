@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import van, { State } from 'vanjs-core'
 import { Gun, guns } from '../gun'
+import { AudioManager } from './AudioManager'
 import { DebugPanel } from './DebugPanel'
 import { ReloadButton } from './ReloadButton'
 import { RevolverCylinder } from './RevolverCylinder'
@@ -91,6 +92,7 @@ export class WesternScene {
   private keys = { a: false, d: false }
   private lastTime = 0
   private readonly MOVE_SPEED = 15.0 // Units per second
+  private audioManager = new AudioManager()
 
   // HUD state
   private sessionGun: Gun
@@ -381,10 +383,7 @@ export class WesternScene {
   private reloadWeapon() {
     if (this.remainingShots.val < this.sessionGun.capacity) {
       this.remainingShots.val = this.sessionGun.capacity
-      if (this.sessionGun.reload) {
-        const reloadSound = new Audio(this.sessionGun.reload)
-        reloadSound.play()
-      }
+      this.audioManager.playSound(this.sessionGun.reload)
     }
   }
 
@@ -395,19 +394,9 @@ export class WesternScene {
     this.cylinderRotation.val += 1
     if (this.remainingShots.val > 0) {
       this.remainingShots.val -= 1
-      if (this.sessionGun.shot) {
-        const shotSound = new Audio(this.sessionGun.shot)
-        shotSound.load()
-        shotSound.play().catch((err) => {
-          console.warn('Failed to play shot sound:', err)
-        })
-      }
-    } else if (this.sessionGun.emptyClick) {
-      const emptySound = new Audio(this.sessionGun.emptyClick)
-      emptySound.load()
-      emptySound.play().catch((err) => {
-        console.warn('Failed to play empty click sound:', err)
-      })
+      this.audioManager.playSound(this.sessionGun.shot)
+    } else {
+      this.audioManager.playSound(this.sessionGun.emptyClick)
     }
   }
 
