@@ -9,27 +9,38 @@ const sessionGun = guns.remington1858
 
 let westernScene: ReturnType<typeof createWesternScene> | null = null
 
-// Initialize timer variables
-let idleTimer: number | null = null
-const IDLE_TIMEOUT = 1000 // 5 seconds
+// High Noon community ID
+const HIGH_NOON_COMMUNITY_ID = '1913997881985675401'
 
-// Reset the idle timer
-const resetIdleTimer = () => {
-  if (idleTimer) {
-    clearTimeout(idleTimer)
-  }
+// Check if we're in the High Noon community
+const isHighNoonCommunity = () => {
+  // Look for the community link specifically in the header area
+  const communityLink = document.querySelector(
+    'h2[role="heading"] + div a[href*="/communities/' + HIGH_NOON_COMMUNITY_ID + '"]'
+  )
+  console.log('communityLink', communityLink)
+  return !!communityLink
+}
 
-  // Don't start timer if scene is already active or page is hidden
-  if (westernScene || document.hidden) {
+// Function to check and potentially start the game
+const checkAndStartGame = () => {
+  console.log('checkAndStartGame')
+  const inCommunity = isHighNoonCommunity()
+
+  // If we're not in the community anymore but the scene is active, destroy it
+  if (!inCommunity && westernScene) {
+    console.log('Left community, destroying scene')
+    westernScene.destroy()
+    westernScene = null
     return
   }
 
-  // Start new timer
-  idleTimer = window.setTimeout(() => {
+  // Start the game if we're in the community and it's not already running
+  if (!westernScene && !document.hidden && inCommunity) {
     console.log('Scene opened')
     playRandomDraw() // Play the draw sound when scene appears
     westernScene = createWesternScene()
-  }, IDLE_TIMEOUT)
+  }
 }
 
 // Handle visibility change
@@ -39,17 +50,22 @@ document.addEventListener('visibilitychange', () => {
       westernScene.destroy()
       westernScene = null
     }
+  } else {
+    checkAndStartGame()
   }
-  resetIdleTimer()
 })
 
-// Handle mouse movement to prevent scene from appearing
-document.addEventListener('mousemove', () => {
-  if (westernScene) {
-    return // Don't reset timer if scene is active
-  }
-  resetIdleTimer()
+// Create a mutation observer to watch for URL/content changes
+const observer = new MutationObserver(() => {
+  console.log('mutation observer')
+  checkAndStartGame()
 })
 
-// Start the idle timer
-resetIdleTimer()
+// Start observing the document for changes
+observer.observe(document.body, {
+  childList: true,
+  subtree: true,
+})
+
+// Initial check
+checkAndStartGame()
